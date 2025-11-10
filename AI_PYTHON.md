@@ -40,12 +40,12 @@ The goal: keep output consistent, production-ready, and aligned with our coding 
 ---
 
 ## Examples
-âœ… Good:
+✅ Good:
 def load_data(path: str) -> pd.DataFrame:
     """Load CSV file into a DataFrame."""
     if not os.path.exists(path):
         raise FileNotFoundError(f"File not found: {path}")
     return pd.read_csv(path)
-âŒ Bad:
+❌ Bad:
 def loaddata(p):
     return pd.read_csv(p)  # no error handling, unclear naming
