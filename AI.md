@@ -78,7 +78,11 @@ myapp-fork/
 └── build.sh                # build pipeline
 
 ````
-
+---
+## 🧱 Patch organization rule:
+Each independent feature, integration, or fix must live in its own subdirectory under patches/.
+AI assistants should never aggregate unrelated modifications into a single patch folder.
+Patches must remain logically grouped and prefixed numerically for deterministic order.
 ---
 
 ## 🔄 AI Modification Rules
