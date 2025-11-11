@@ -1,12 +1,3 @@
-From: AI Assistant (Claude)
-Subject: Add chat expand/collapse functionality to ChatColumn
-Date: 2025-11-07
-
-This patch adds expand/collapse state props to ChatColumn component
-to enable full-screen chat toggle functionality.
-
-Applies to: upstream/app/frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx
-
 --- a/frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx
 +++ b/frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx
 @@ -11,10 +11,14 @@ import { ContextSelections } from '../[id]/page'

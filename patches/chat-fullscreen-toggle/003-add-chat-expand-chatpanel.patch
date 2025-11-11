@@ -1,13 +1,3 @@
-From: AI Assistant (Claude)
-Subject: Add expand/collapse button to ChatPanel component
-Date: 2025-11-07
-
-This patch adds an expand/collapse button to the ChatPanel header,
-allowing users to toggle between normal and full-width chat views.
-Imports Maximize2 and Minimize2 icons from lucide-react.
-
-Applies to: upstream/app/frontend/src/components/source/ChatPanel.tsx
-
 --- a/frontend/src/components/source/ChatPanel.tsx
 +++ b/frontend/src/components/source/ChatPanel.tsx
 @@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

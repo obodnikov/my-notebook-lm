@@ -1,12 +1,3 @@
-From: AI Assistant (Claude)
-Subject: Add chat expand/collapse state management to notebook page
-Date: 2025-11-07
-
-This patch adds state management for chat expansion and modifies the layout
-to conditionally hide Sources/Notes columns when chat is expanded.
-
-Applies to: upstream/app/frontend/src/app/(dashboard)/notebooks/[id]/page.tsx
-
 --- a/frontend/src/app/(dashboard)/notebooks/[id]/page.tsx
 +++ b/frontend/src/app/(dashboard)/notebooks/[id]/page.tsx
 @@ -29,6 +29,9 @@ export default function NotebookPage() {
