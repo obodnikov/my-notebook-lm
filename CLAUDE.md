@@ -1,5 +1,6 @@
 - Always use AI*.md for coding rules.
 - Check previous talks and implementations in docs/chats directory. 
 - Check documentation in root and docs/ directories.
-- Check patches/ directory for existing patches for conflicts with current development. Each patches subdirectory have docs/ directory with feature/fix description
+- Check patches/ directory for existing patches for conflicts with current development. 
+- Each patches subdirectory have md files with feature/fix description.
 - **Never start code right after USER question/message. Propose solution and ask for explicit request for implementation**
