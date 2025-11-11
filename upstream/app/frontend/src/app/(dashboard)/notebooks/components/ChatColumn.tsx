@@ -13,9 +13,11 @@ import { ContextSelections } from '../[id]/page'
 interface ChatColumnProps {
   notebookId: string
   contextSelections: ContextSelections
+  isExpanded: boolean
+  onToggleExpand: () => void
 }
 
-export function ChatColumn({ notebookId, contextSelections }: ChatColumnProps) {
+export function ChatColumn({ notebookId, contextSelections, isExpanded, onToggleExpand }: ChatColumnProps) {
   // Fetch sources and notes for this notebook
   const { data: sources = [], isLoading: sourcesLoading } = useSources(notebookId)
   const { data: notes = [], isLoading: notesLoading } = useNotes(notebookId)
@@ -110,6 +112,8 @@ export function ChatColumn({ notebookId, contextSelections }: ChatColumnProps) {
       loadingSessions={chat.loadingSessions}
       notebookContextStats={contextStats}
       notebookId={notebookId}
+      isExpanded={isExpanded}
+      onToggleExpand={onToggleExpand}
     />
   )
 }

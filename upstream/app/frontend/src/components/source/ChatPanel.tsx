@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { Bot, User, Send, Loader2, FileText, Lightbulb, StickyNote, Clock } from 'lucide-react'
+import { Bot, User, Send, Loader2, FileText, Lightbulb, StickyNote, Clock, Maximize2, Minimize2 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import {
   SourceChatMessage,
@@ -52,6 +52,9 @@ interface ChatPanelProps {
   notebookContextStats?: NotebookContextStats
   // Notebook ID for saving notes
   notebookId?: string
+  // Expand/collapse functionality
+  isExpanded?: boolean
+  onToggleExpand?: () => void
 }
 
 export function ChatPanel({
@@ -71,7 +74,9 @@ export function ChatPanel({
   title = 'Chat with Source',
   contextType = 'source',
   notebookContextStats,
-  notebookId
+  notebookId,
+  isExpanded = false,
+  onToggleExpand
 }: ChatPanelProps) {
   const [input, setInput] = useState('')
   const [sessionManagerOpen, setSessionManagerOpen] = useState(false)
@@ -129,7 +134,31 @@ export function ChatPanel({
             <Bot className="h-5 w-5" />
             {title}
           </CardTitle>
-          {onSelectSession && onCreateSession && onDeleteSession && (
+          <div className="flex items-center gap-2">
+            {/* Expand/Collapse button */}
+            {onToggleExpand && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onToggleExpand}
+                className="gap-2"
+                title={isExpanded ? "Collapse chat" : "Expand chat"}
+              >
+                {isExpanded ? (
+                  <>
+                    <Minimize2 className="h-4 w-4" />
+                    <span className="text-xs">Collapse</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="h-4 w-4" />
+                    <span className="text-xs">Expand</span>
+                  </>
+                )}
+              </Button>
+            )}
+            {/* Sessions button */}
+            {onSelectSession && onCreateSession && onDeleteSession && (
             <Dialog open={sessionManagerOpen} onOpenChange={setSessionManagerOpen}>
               <Button
                 variant="ghost"
@@ -158,6 +187,7 @@ export function ChatPanel({
               </DialogContent>
             </Dialog>
           )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col min-h-0 p-0">

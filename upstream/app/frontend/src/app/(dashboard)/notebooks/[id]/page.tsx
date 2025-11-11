@@ -29,6 +29,9 @@ export default function NotebookPage() {
   const { data: sources, isLoading: sourcesLoading, refetch: refetchSources } = useSources(notebookId)
   const { data: notes, isLoading: notesLoading } = useNotes(notebookId)
 
+  // Chat expansion state
+  const [isChatExpanded, setIsChatExpanded] = useState(false)
+
   // Context selection state
   const [contextSelections, setContextSelections] = useState<ContextSelections>({
     sources: {},
@@ -79,6 +82,11 @@ export default function NotebookPage() {
     }))
   }
 
+  // Handler to toggle chat expansion
+  const handleToggleChatExpand = () => {
+    setIsChatExpanded(prev => !prev)
+  }
+
   if (notebookLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -106,9 +114,11 @@ export default function NotebookPage() {
         </div>
 
         <div className="flex-1 p-6 pt-6 overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0">
-            <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 h-full min-h-0">
-              <div className="flex flex-col h-full min-h-0 overflow-hidden">
+          <div className={`grid gap-6 h-full min-h-0 ${isChatExpanded ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-3'}`}>
+            {/* Sources and Notes columns - hidden when chat is expanded */}
+            {!isChatExpanded && (
+              <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 h-full min-h-0">
+                <div className="flex flex-col h-full min-h-0 overflow-hidden">
                 <SourcesColumn
                   sources={sources}
                   isLoading={sourcesLoading}
@@ -128,12 +138,16 @@ export default function NotebookPage() {
                   onContextModeChange={(noteId, mode) => handleContextModeChange(noteId, mode, 'note')}
                 />
               </div>
-            </div>
+              </div>
+            )}
 
-            <div className="flex flex-col h-full min-h-0 overflow-hidden">
+            {/* Chat column - expands to full width when isChatExpanded is true */}
+            <div className={`flex flex-col h-full min-h-0 overflow-hidden ${isChatExpanded ? 'col-span-1' : ''}`}>
               <ChatColumn
                 notebookId={notebookId}
                 contextSelections={contextSelections}
+                isExpanded={isChatExpanded}
+                onToggleExpand={handleToggleChatExpand}
               />
             </div>
           </div>
