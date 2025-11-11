@@ -32,10 +32,11 @@ cp -r patches patches.backup.$(date +%Y%m%d)
 ### Step 2: Copy Patch Files
 
 ```bash
-# Copy the three patch files to your patches directory
-cp 001-add-chat-expand-chatcolumn.patch patches/
-cp 002-add-chat-expand-page.patch patches/
-cp 003-add-chat-expand-chatpanel.patch patches/
+# Create feature subdirectory and copy patches
+mkdir -p patches/chat-fullscreen-toggle
+cp 001-add-chat-expand-chatcolumn.patch patches/chat-fullscreen-toggle/
+cp 002-add-chat-expand-page.patch patches/chat-fullscreen-toggle/
+cp 003-add-chat-expand-chatpanel.patch patches/chat-fullscreen-toggle/
 ```
 
 ### Step 3: Apply Patches
@@ -47,13 +48,12 @@ cp 003-add-chat-expand-chatpanel.patch patches/
 cd /path/to/your-repo
 
 # Apply each patch individually
-git apply patches/001-add-chat-expand-chatcolumn.patch
-git apply patches/002-add-chat-expand-page.patch
-git apply patches/003-add-chat-expand-chatpanel.patch
+git apply patches/chat-fullscreen-toggle/001-add-chat-expand-chatcolumn.patch
+git apply patches/chat-fullscreen-toggle/002-add-chat-expand-page.patch
+git apply patches/chat-fullscreen-toggle/003-add-chat-expand-chatpanel.patch
 
 # Commit the changes
-git add .
-git commit -m "feat: Add chat expand/collapse functionality
+git commit -am "feat: Add chat expand/collapse functionality
 
 - Add expand/collapse button to chat panel header
 - Implement state management for chat expansion
@@ -102,10 +102,11 @@ npm run dev
 ```
 your-repo/
 ├── patches/
-│   ├── 001-add-chat-expand-chatcolumn.patch  ← New
-│   ├── 002-add-chat-expand-page.patch        ← New
-│   ├── 003-add-chat-expand-chatpanel.patch   ← New
-│   └── ... (other existing patches)
+│   ├── chat-fullscreen-toggle/              ← New feature directory
+│   │   ├── 001-add-chat-expand-chatcolumn.patch
+│   │   ├── 002-add-chat-expand-page.patch
+│   │   └── 003-add-chat-expand-chatpanel.patch
+│   └── ... (other feature directories)
 ├── upstream/
 │   └── app/
 │       └── frontend/
@@ -134,8 +135,10 @@ When upstream updates are needed:
 
 2. **Reapply all patches** (including these new ones):
    ```bash
-   for p in patches/*.patch; do
-     git apply "$p"
+   for dir in patches/*/; do
+     for p in "$dir"*.patch; do
+       git apply "$p"
+     done
    done
    ```
 
@@ -218,12 +221,12 @@ If upstream code changes and patches need updates:
 
 ```bash
 # 1. Apply old patch to see conflicts
-git apply patches/001-add-chat-expand-chatcolumn.patch
+git apply patches/chat-fullscreen-toggle/001-add-chat-expand-chatcolumn.patch
 
 # 2. Manually fix conflicts in the file
 
 # 3. Generate new patch
-git diff upstream/app/frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx > patches/001-add-chat-expand-chatcolumn.patch
+git diff upstream/app/frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx > patches/chat-fullscreen-toggle/001-add-chat-expand-chatcolumn.patch
 
 # 4. Repeat for other patches
 ```
@@ -239,7 +242,8 @@ git diff upstream/app/frontend/src/app/(dashboard)/notebooks/components/ChatColu
 
 After successful implementation:
 
-✅ Three patch files in `patches/` directory  
+✅ Feature directory `patches/chat-fullscreen-toggle/` created  
+✅ Three patch files in feature directory  
 ✅ Patches apply cleanly to upstream code  
 ✅ Feature works as expected in browser  
 ✅ No breaking changes to existing functionality  
