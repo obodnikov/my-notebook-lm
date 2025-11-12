@@ -1,16 +1,8 @@
-From: AI Assistant (Claude)
-Subject: Add chat expand/collapse functionality to ChatColumn
-Date: 2025-11-07
-
-This patch adds expand/collapse state props to ChatColumn component
-to enable full-screen chat toggle functionality.
-
-Applies to: upstream/app/frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx
-
---- a/frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx
-+++ b/frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx
-@@ -11,10 +11,14 @@ import { ContextSelections } from '../[id]/page'
- 
+diff --git a/upstream/app/frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx b/upstream/app/frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx
+index b65d4a3..22b341b 100644
+--- a/upstream/app/frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx
++++ b/upstream/app/frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx
+@@ -13,9 +13,11 @@ import { ContextSelections } from '../[id]/page'
  interface ChatColumnProps {
    notebookId: string
    contextSelections: ContextSelections
@@ -23,7 +15,7 @@ Applies to: upstream/app/frontend/src/app/(dashboard)/notebooks/components/ChatC
    // Fetch sources and notes for this notebook
    const { data: sources = [], isLoading: sourcesLoading } = useSources(notebookId)
    const { data: notes = [], isLoading: notesLoading } = useNotes(notebookId)
-@@ -108,6 +112,8 @@ export function ChatColumn({ notebookId, contextSelections }: ChatColumnProps)
+@@ -110,6 +112,8 @@ export function ChatColumn({ notebookId, contextSelections }: ChatColumnProps) {
        loadingSessions={chat.loadingSessions}
        notebookContextStats={contextStats}
        notebookId={notebookId}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { useSourceChat } from '@/lib/hooks/useSourceChat'
@@ -18,11 +18,19 @@ export default function SourceDetailPage() {
   // Initialize source chat
   const chat = useSourceChat(sourceId)
 
+  // Chat expansion state
+  const [isChatExpanded, setIsChatExpanded] = useState(false)
+
   const handleBack = useCallback(() => {
     const returnPath = navigation.getReturnPath()
     router.push(returnPath)
     navigation.clearReturnTo()
   }, [navigation, router])
+
+  // Handler to toggle chat expansion
+  const handleToggleChatExpand = () => {
+    setIsChatExpanded(prev => !prev)
+  }
 
   return (
     <div className="flex flex-col h-screen">
@@ -40,8 +48,10 @@ export default function SourceDetailPage() {
       </div>
 
       {/* Main content: Source detail + Chat */}
-      <div className="flex-1 grid gap-6 lg:grid-cols-[2fr_1fr] overflow-hidden px-6">
+      <div className={`flex-1 grid gap-6 overflow-hidden px-6 ${isChatExpanded ? 'grid-cols-1' : 'lg:grid-cols-[2fr_1fr]'}`}>
         {/* Left column - Source detail */}
+        {/* Hidden when chat is expanded */}
+        {!isChatExpanded && (
         <div className="overflow-y-auto px-4 pb-6">
           <SourceDetailContent
             sourceId={sourceId}
@@ -49,8 +59,10 @@ export default function SourceDetailPage() {
             onClose={handleBack}
           />
         </div>
+        )}
 
         {/* Right column - Chat */}
+        {/* Expands to full width when isChatExpanded is true */}
         <div className="overflow-y-auto px-4 pb-6">
           <ChatPanel
             messages={chat.messages}
@@ -70,6 +82,8 @@ export default function SourceDetailPage() {
             onUpdateSession={(sessionId, title) => chat.updateSession(sessionId, { title })}
             onDeleteSession={chat.deleteSession}
             loadingSessions={chat.loadingSessions}
+            isExpanded={isChatExpanded}
+            onToggleExpand={handleToggleChatExpand}
           />
         </div>
       </div>
