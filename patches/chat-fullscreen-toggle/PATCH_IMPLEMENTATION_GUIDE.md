@@ -9,16 +9,22 @@ This implementation follows the **vendor + patch model** for this downstream der
 1. **001-add-chat-expand-chatcolumn.patch**
    - Adds `isExpanded` and `onToggleExpand` props to ChatColumn
    - Passes props down to ChatPanel component
-   
+
 2. **002-add-chat-expand-page.patch**
-   - Adds chat expansion state management
+   - Adds chat expansion state management to notebooks page
    - Modifies layout to conditionally hide Sources/Notes
    - Implements expand/collapse handler
-   
+
 3. **003-add-chat-expand-chatpanel.patch**
    - Adds Maximize2/Minimize2 icons import
    - Adds expand/collapse button to header
    - Implements button UI with conditional rendering
+
+4. **004-add-chat-expand-sources-page.patch**
+   - Adds chat expansion state management to sources page
+   - Modifies layout to conditionally hide Source Detail column
+   - Implements expand/collapse handler
+   - Passes props to existing ChatPanel component
 
 ## 🔧 Implementation Steps
 
@@ -37,6 +43,7 @@ mkdir -p patches/chat-fullscreen-toggle
 cp 001-add-chat-expand-chatcolumn.patch patches/chat-fullscreen-toggle/
 cp 002-add-chat-expand-page.patch patches/chat-fullscreen-toggle/
 cp 003-add-chat-expand-chatpanel.patch patches/chat-fullscreen-toggle/
+cp 004-add-chat-expand-sources-page.patch patches/chat-fullscreen-toggle/
 ```
 
 ### Step 3: Apply Patches
@@ -51,13 +58,15 @@ cd /path/to/your-repo
 git apply patches/chat-fullscreen-toggle/001-add-chat-expand-chatcolumn.patch
 git apply patches/chat-fullscreen-toggle/002-add-chat-expand-page.patch
 git apply patches/chat-fullscreen-toggle/003-add-chat-expand-chatpanel.patch
+git apply patches/chat-fullscreen-toggle/004-add-chat-expand-sources-page.patch
 
 # Commit the changes
 git commit -am "feat: Add chat expand/collapse functionality
 
 - Add expand/collapse button to chat panel header
-- Implement state management for chat expansion
-- Hide Sources/Notes columns when chat is expanded
+- Implement state management for chat expansion on notebook and sources pages
+- Hide Sources/Notes columns when chat is expanded (notebook page)
+- Hide Source Detail column when chat is expanded (sources page)
 - Preserve chat history and context during toggle"
 ```
 
@@ -83,6 +92,7 @@ git diff HEAD~1
 # - frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx
 # - frontend/src/app/(dashboard)/notebooks/[id]/page.tsx
 # - frontend/src/components/source/ChatPanel.tsx
+# - frontend/src/app/(dashboard)/sources/[id]/page.tsx
 ```
 
 ### Step 5: Test the Feature
@@ -92,9 +102,17 @@ git diff HEAD~1
 cd frontend
 npm run dev
 
-# Navigate to any notebook
-# Look for "Expand" button next to "Sessions" in Chat header
-# Click to test expand/collapse functionality
+# Test on Notebook Page:
+# 1. Navigate to any notebook (/notebooks/[id])
+# 2. Look for "Expand" button next to "Sessions" in Chat header
+# 3. Click to test expand/collapse functionality
+# 4. Verify Sources and Notes columns hide when expanded
+
+# Test on Sources Page:
+# 1. Navigate to any source detail (/sources/[id])
+# 2. Look for "Expand" button next to "Sessions" in Chat header
+# 3. Click to test expand/collapse functionality
+# 4. Verify Source Detail column hides when expanded
 ```
 
 ## 📁 File Structure After Application
@@ -105,20 +123,25 @@ your-repo/
 │   ├── chat-fullscreen-toggle/              ← New feature directory
 │   │   ├── 001-add-chat-expand-chatcolumn.patch
 │   │   ├── 002-add-chat-expand-page.patch
-│   │   └── 003-add-chat-expand-chatpanel.patch
+│   │   ├── 003-add-chat-expand-chatpanel.patch
+│   │   └── 004-add-chat-expand-sources-page.patch
 │   └── ... (other feature directories)
 ├── upstream/
 │   └── app/
 │       └── frontend/
-│           ├── src/
-│           │   ├── app/(dashboard)/notebooks/
-│           │   │   ├── [id]/
-│           │   │   │   └── page.tsx          ← Modified by patch
-│           │   │   └── components/
-│           │   │       └── ChatColumn.tsx    ← Modified by patch
-│           │   └── components/
-│           │       └── source/
-│           │           └── ChatPanel.tsx     ← Modified by patch
+│           └── src/
+│               ├── app/(dashboard)/
+│               │   ├── notebooks/
+│               │   │   ├── [id]/
+│               │   │   │   └── page.tsx          ← Modified by patch 002
+│               │   │   └── components/
+│               │   │       └── ChatColumn.tsx    ← Modified by patch 001
+│               │   └── sources/
+│               │       └── [id]/
+│               │           └── page.tsx          ← Modified by patch 004
+│               └── components/
+│                   └── source/
+│                       └── ChatPanel.tsx         ← Modified by patch 003
 └── tools/
     └── update_upstream.sh
 ```
@@ -154,7 +177,7 @@ When upstream updates are needed:
 - **Dependencies**: None
 - **Conflicts**: Unlikely (interface change only)
 
-### Patch 002: Page Layout
+### Patch 002: Notebook Page Layout
 - **Lines changed**: ~20
 - **Risk level**: Low
 - **Dependencies**: ChatColumn props
@@ -166,6 +189,12 @@ When upstream updates are needed:
 - **Dependencies**: None
 - **Conflicts**: Unlikely (adds new UI element)
 
+### Patch 004: Sources Page Layout
+- **Lines changed**: ~18
+- **Risk level**: Low
+- **Dependencies**: ChatPanel props (already added in patch 003)
+- **Conflicts**: Possible if upstream changes sources page layout structure
+
 ## 🧪 Testing Checklist
 
 After applying patches:
@@ -173,13 +202,25 @@ After applying patches:
 - [ ] Patches applied without conflicts
 - [ ] TypeScript compilation successful
 - [ ] No console errors in browser
+
+**Notebook Page (/notebooks/[id]):**
 - [ ] Expand button appears in chat header
-- [ ] Sources/Notes hide when expanded
+- [ ] Sources/Notes columns hide when expanded
 - [ ] Chat takes full width when expanded
 - [ ] Collapse restores 3-column layout
 - [ ] Chat history preserved during toggle
 - [ ] Sessions button still works
-- [ ] Mobile responsive works correctly
+
+**Sources Page (/sources/[id]):**
+- [ ] Expand button appears in chat header
+- [ ] Source Detail column hides when expanded
+- [ ] Chat takes full width when expanded
+- [ ] Collapse restores 2-column layout
+- [ ] Chat history preserved during toggle
+- [ ] Sessions button still works
+
+**General:**
+- [ ] Mobile responsive works correctly on both pages
 
 ## 🐛 Troubleshooting
 

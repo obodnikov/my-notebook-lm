@@ -11,8 +11,9 @@ This repository is a **downstream derivative** that uses a **vendor + patch mode
 
 ### Patch Files (Apply These)
 1. **001-add-chat-expand-chatcolumn.patch** - ChatColumn component changes
-2. **002-add-chat-expand-page.patch** - Notebook page layout changes  
+2. **002-add-chat-expand-page.patch** - Notebook page layout changes
 3. **003-add-chat-expand-chatpanel.patch** - ChatPanel button UI changes
+4. **004-add-chat-expand-sources-page.patch** - Sources page layout changes
 
 ### Documentation
 4. **PATCH_IMPLEMENTATION_GUIDE.md** - Detailed implementation steps
@@ -36,6 +37,7 @@ cd /path/to/your-repo
 git apply patches/chat-fullscreen-toggle/001-add-chat-expand-chatcolumn.patch
 git apply patches/chat-fullscreen-toggle/002-add-chat-expand-page.patch
 git apply patches/chat-fullscreen-toggle/003-add-chat-expand-chatpanel.patch
+git apply patches/chat-fullscreen-toggle/004-add-chat-expand-sources-page.patch
 
 # 3. Commit changes
 git add .
@@ -46,6 +48,8 @@ cd frontend && npm run dev
 ```
 
 ## 🔍 What This Does
+
+### Notebook Page (/notebooks/[id])
 
 **Before (Cramped):**
 ```
@@ -62,22 +66,45 @@ cd frontend && npm run dev
 └───────────────────────────────┘
 ```
 
+### Sources Page (/sources/[id])
+
+**Before (Cramped):**
+```
+┌─────────────────┬─────────┐
+│ Source Detail   │  Chat   │  ← Chat is 33% width
+│    (66%)        │ (33%)   │
+└─────────────────┴─────────┘
+```
+
+**After (Expanded):**
+```
+┌───────────────────────────────┐
+│           Chat                │  ← Chat is 100% width
+│      (Full Screen)            │
+└───────────────────────────────┘
+```
+
 ### Features
-✅ Click "Expand" button to maximize chat  
-✅ Sources and Notes columns hide automatically  
-✅ Click "Collapse" to restore 3-column layout  
-✅ Chat history preserved during toggle  
+✅ Click "Expand" button to maximize chat
+✅ Sources and Notes columns hide automatically (notebook page)
+✅ Source detail column hides automatically (sources page)
+✅ Click "Collapse" to restore original layout
+✅ Chat history preserved during toggle
 ✅ Zero breaking changes  
 
 ## 📋 Files Modified by Patches
 
 ```
 frontend/src/
-├── app/(dashboard)/notebooks/
-│   ├── [id]/
-│   │   └── page.tsx                    ← Patch 002
-│   └── components/
-│       └── ChatColumn.tsx              ← Patch 001
+├── app/(dashboard)/
+│   ├── notebooks/
+│   │   ├── [id]/
+│   │   │   └── page.tsx                ← Patch 002 (Notebook page)
+│   │   └── components/
+│   │       └── ChatColumn.tsx          ← Patch 001
+│   └── sources/
+│       └── [id]/
+│           └── page.tsx                ← Patch 004 (Sources page)
 └── components/source/
     └── ChatPanel.tsx                   ← Patch 003
 ```
@@ -88,7 +115,8 @@ patches/
 └── chat-fullscreen-toggle/
     ├── 001-add-chat-expand-chatcolumn.patch
     ├── 002-add-chat-expand-page.patch
-    └── 003-add-chat-expand-chatpanel.patch
+    ├── 003-add-chat-expand-chatpanel.patch
+    └── 004-add-chat-expand-sources-page.patch
 ```
 
 ## 🔄 Why Patches?
@@ -107,9 +135,10 @@ Following the workflow in **AI.md**:
 | Patch | File | Lines Changed | Risk Level |
 |-------|------|---------------|------------|
 | 001 | ChatColumn.tsx | +5 | Low |
-| 002 | page.tsx | +20 | Low |
+| 002 | notebooks/[id]/page.tsx | +20 | Low |
 | 003 | ChatPanel.tsx | +30 | Low |
-| **Total** | **3 files** | **~55 lines** | **Low** |
+| 004 | sources/[id]/page.tsx | +18 | Low |
+| **Total** | **4 files** | **~73 lines** | **Low** |
 
 ## 🧪 Verification
 
@@ -123,6 +152,7 @@ git status
 # modified: frontend/src/app/(dashboard)/notebooks/components/ChatColumn.tsx
 # modified: frontend/src/app/(dashboard)/notebooks/[id]/page.tsx
 # modified: frontend/src/components/source/ChatPanel.tsx
+# modified: frontend/src/app/(dashboard)/sources/[id]/page.tsx
 
 # Run TypeScript check
 cd frontend && npm run type-check
@@ -163,20 +193,21 @@ Follow this order:
 
 1. ✅ **Read** PATCH_IMPLEMENTATION_GUIDE.md
 2. ✅ **Backup** existing patches directory
-3. ✅ **Copy** three .patch files to `patches/`
-4. ✅ **Apply** patches in order (001, 002, 003)
+3. ✅ **Copy** four .patch files to `patches/`
+4. ✅ **Apply** patches in order (001, 002, 003, 004)
 5. ✅ **Commit** changes to your repository
-6. ✅ **Test** in browser
+6. ✅ **Test** in browser (both /notebooks/[id] and /sources/[id] pages)
 7. ✅ **Document** in your changelog
 
 ## 🎯 Success Criteria
 
-✅ Feature directory `patches/chat-fullscreen-toggle/` created  
-✅ All three patches in feature directory  
-✅ Patches apply without conflicts  
-✅ TypeScript compiles successfully  
-✅ Feature works in browser  
-✅ No breaking changes  
+✅ Feature directory `patches/chat-fullscreen-toggle/` created
+✅ All four patches in feature directory
+✅ Patches apply without conflicts
+✅ TypeScript compiles successfully
+✅ Feature works in browser on /notebooks/[id] page
+✅ Feature works in browser on /sources/[id] page
+✅ No breaking changes
 ✅ Ready for next upstream update  
 
 ## 📚 Key Documents
