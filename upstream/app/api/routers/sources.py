@@ -1228,12 +1228,20 @@ async def get_audio_generation_status(source_id: str):
                     command_status = status_result.status
                     result = getattr(status_result, "result", None)
 
+                    # Check if command completed but failed (success=False)
                     if isinstance(result, dict):
+                        success = result.get("success", True)
+                        if command_status == "completed" and not success:
+                            # Override status to 'failed' for failed commands
+                            command_status = "failed"
+
                         command_info = {
                             "chunks_processed": result.get("chunks_processed", 0),
                             "total_characters": result.get("total_characters", 0),
                             "warning_message": result.get("warning_message"),
                             "processing_time": result.get("processing_time"),
+                            "error_message": result.get("error_message"),
+                            "success": success,
                         }
 
             except Exception as e:

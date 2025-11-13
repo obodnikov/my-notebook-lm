@@ -48,7 +48,7 @@ All patches should be applied in order:
    - File: `upstream/app/frontend/src/lib/api/sources.ts`
    - Methods: `generateAudio`, `getAudio`, `getAudioStatus`, `deleteAudio`
 
-5. **005-add-audio-ui-integration.patch** (11K)
+5. **005-add-audio-ui-integration.patch** (4.1K)
    - Integrates audio feature into Source Detail UI
    - File: `upstream/app/frontend/src/components/source/SourceDetailContent.tsx`
    - Changes:
@@ -57,6 +57,24 @@ All patches should be applied in order:
      - Audio player component with controls
      - Status polling during generation
      - Warning message display
+
+### Bug Fix Patches (REQUIRED!)
+
+6. **006-fix-register-tts-command.patch** (750 bytes) 🔴 **CRITICAL**
+   - Registers TTS command with surreal-commands worker
+   - File: `upstream/app/commands/__init__.py`
+   - **Without this patch, the feature will not work!**
+   - **IMPORTANT**: Restart backend after applying
+
+7. **007-fix-error-handling-ui.patch** (4.1K) 🟠 **IMPORTANT**
+   - Adds timeout to polling (5 minutes max)
+   - Wraps polling in try-catch for error handling
+   - Adds failed state UI in Audio tab
+   - Improves error messages
+   - File: `upstream/app/frontend/src/components/source/SourceDetailContent.tsx`
+   - **Without this patch, errors will cause infinite loading**
+
+> **⚠️ Note**: Patches 006-007 fix critical issues found during testing. See [FIXES.md](FIXES.md) for details.
 
 ## 🚀 Installation
 
@@ -72,16 +90,24 @@ All patches should be applied in order:
 ```bash
 cd /home/mike/src/my-notebook-lm
 
-# Apply patches in order
+# Apply patches in order (1-5: feature implementation)
 git apply patches/source-direct-tts/001-add-audio-fields-domain.patch
 git apply patches/source-direct-tts/002-add-tts-command.patch
 git apply patches/source-direct-tts/003-add-audio-endpoints.patch
 git apply patches/source-direct-tts/004-add-audio-api-client.patch
 git apply patches/source-direct-tts/005-add-audio-ui-integration.patch
 
+# Apply patches (6-7: critical bug fixes) - REQUIRED!
+git apply patches/source-direct-tts/006-fix-register-tts-command.patch
+git apply patches/source-direct-tts/007-fix-error-handling-ui.patch
+
 # Verify all patches applied successfully
 git status
 ```
+
+> **⚠️ IMPORTANT**: Patches 006 and 007 are REQUIRED bug fixes. Without them:
+> - Patch 006: Feature will not work (command not found error)
+> - Patch 007: Errors will cause infinite loading with no user feedback
 
 ### Database Migration
 

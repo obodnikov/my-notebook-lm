@@ -86,6 +86,7 @@ export function SourceDetailContent({
     has_audio: boolean
     command_status: string | null
     warning_message?: string
+    error_message?: string
   } | null>(null)
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false)
   const [isDeletingAudio, setIsDeletingAudio] = useState(false)
@@ -137,7 +138,8 @@ export function SourceDetailContent({
       setAudioStatus({
         has_audio: data.has_audio,
         command_status: data.command_status,
-        warning_message: data.command_info?.warning_message
+        warning_message: data.command_info?.warning_message,
+        error_message: data.command_info?.error_message
       })
     } catch (err) {
       console.error('Failed to fetch audio status:', err)
@@ -340,22 +342,46 @@ export function SourceDetailContent({
       const response = await sourcesApi.generateAudio(source.id)
       toast.success(response.message)
       await fetchAudioStatus()
-      // Poll for completion
+
+      // Poll for completion with timeout
+      let pollCount = 0
+      const maxPolls = 150 // 5 minutes max (150 * 2s)
+
       const pollInterval = setInterval(async () => {
-        const status = await sourcesApi.getAudioStatus(source.id)
-        setAudioStatus({
-          has_audio: status.has_audio,
-          command_status: status.command_status,
-          warning_message: status.command_info?.warning_message
-        })
-        if (status.command_status === 'completed' || status.command_status === 'failed') {
+        try {
+          pollCount++
+
+          // Timeout after max polls
+          if (pollCount >= maxPolls) {
+            clearInterval(pollInterval)
+            setIsGeneratingAudio(false)
+            toast.error('Audio generation timeout. Please check status manually.')
+            return
+          }
+
+          const status = await sourcesApi.getAudioStatus(source.id)
+          setAudioStatus({
+            has_audio: status.has_audio,
+            command_status: status.command_status,
+            warning_message: status.command_info?.warning_message,
+            error_message: status.command_info?.error_message
+          })
+
+          if (status.command_status === 'completed') {
+            clearInterval(pollInterval)
+            setIsGeneratingAudio(false)
+            toast.success('Audio generation completed!')
+          } else if (status.command_status === 'failed') {
+            clearInterval(pollInterval)
+            setIsGeneratingAudio(false)
+            toast.error('Audio generation failed. Please check logs or try again.')
+          }
+        } catch (pollError) {
+          // Error during polling
+          console.error('Error polling audio status:', pollError)
           clearInterval(pollInterval)
           setIsGeneratingAudio(false)
-          if (status.command_status === 'completed') {
-            toast.success('Audio generation completed!')
-          } else {
-            toast.error('Audio generation failed')
-          }
+          toast.error('Error checking generation status')
         }
       }, 2000)
     } catch (error) {
@@ -755,6 +781,29 @@ export function SourceDetailContent({
                     <p className="text-xs text-muted-foreground mt-1">
                       This may take a few moments
                     </p>
+                  </div>
+                ) : audioStatus?.command_status === 'failed' ? (
+                  <div className="text-center py-8">
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Generation Failed</AlertTitle>
+                      <AlertDescription>
+                        {audioStatus.error_message || 'Audio generation failed. This could be due to a missing TTS model, invalid text, or a server error. Please check the application logs for details.'}
+                      </AlertDescription>
+                    </Alert>
+                    <Button onClick={handleGenerateAudio} disabled={isGeneratingAudio}>
+                      {isGeneratingAudio ? (
+                        <>
+                          <LoadingSpinner className="mr-2 h-4 w-4" />
+                          Retrying...
+                        </>
+                      ) : (
+                        <>
+                          <Volume2 className="mr-2 h-4 w-4" />
+                          Retry Generation
+                        </>
+                      )}
+                    </Button>
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">

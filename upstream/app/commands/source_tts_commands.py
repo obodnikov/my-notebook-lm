@@ -181,7 +181,7 @@ async def generate_source_audio_command(
             )
 
             # Save audio chunk
-            await tts_model.save_audio(audio_response, str(chunk_file))
+            tts_model.save_audio(audio_response.audio_data, str(chunk_file))
             audio_files.append(chunk_file)
 
             logger.info(f"Saved chunk {i} to {chunk_file}")

@@ -134,6 +134,8 @@ export const sourcesApi = {
         total_characters?: number
         warning_message?: string
         processing_time?: number
+        error_message?: string
+        success?: boolean
       } | null
       command_id: string | null
     }>(`/sources/${id}/audio/status`)

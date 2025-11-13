@@ -1,8 +1,26 @@
 diff --git a/upstream/app/frontend/src/components/source/SourceDetailContent.tsx b/upstream/app/frontend/src/components/source/SourceDetailContent.tsx
-index 1c5b6ed..7cd838e 100644
+index 1c5b6ed..f6e0615 100644
 --- a/upstream/app/frontend/src/components/source/SourceDetailContent.tsx
 +++ b/upstream/app/frontend/src/components/source/SourceDetailContent.tsx
-@@ -340,22 +340,45 @@ export function SourceDetailContent({
+@@ -86,6 +86,7 @@ export function SourceDetailContent({
+     has_audio: boolean
+     command_status: string | null
+     warning_message?: string
++    error_message?: string
+   } | null>(null)
+   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false)
+   const [isDeletingAudio, setIsDeletingAudio] = useState(false)
+@@ -137,7 +138,8 @@ export function SourceDetailContent({
+       setAudioStatus({
+         has_audio: data.has_audio,
+         command_status: data.command_status,
+-        warning_message: data.command_info?.warning_message
++        warning_message: data.command_info?.warning_message,
++        error_message: data.command_info?.error_message
+       })
+     } catch (err) {
+       console.error('Failed to fetch audio status:', err)
+@@ -340,22 +342,46 @@ export function SourceDetailContent({
        const response = await sourcesApi.generateAudio(source.id)
        toast.success(response.message)
        await fetchAudioStatus()
@@ -37,7 +55,8 @@ index 1c5b6ed..7cd838e 100644
 +          setAudioStatus({
 +            has_audio: status.has_audio,
 +            command_status: status.command_status,
-+            warning_message: status.command_info?.warning_message
++            warning_message: status.command_info?.warning_message,
++            error_message: status.command_info?.error_message
 +          })
 +
            if (status.command_status === 'completed') {
@@ -60,7 +79,7 @@ index 1c5b6ed..7cd838e 100644
          }
        }, 2000)
      } catch (error) {
-@@ -756,6 +779,30 @@ export function SourceDetailContent({
+@@ -756,6 +782,29 @@ export function SourceDetailContent({
                        This may take a few moments
                      </p>
                    </div>
@@ -70,8 +89,7 @@ index 1c5b6ed..7cd838e 100644
 +                      <AlertCircle className="h-4 w-4" />
 +                      <AlertTitle>Generation Failed</AlertTitle>
 +                      <AlertDescription>
-+                        Audio generation failed. This could be due to a missing TTS model, invalid text, or a server error.
-+                        Please check the application logs for details.
++                        {audioStatus.error_message || 'Audio generation failed. This could be due to a missing TTS model, invalid text, or a server error. Please check the application logs for details.'}
 +                      </AlertDescription>
 +                    </Alert>
 +                    <Button onClick={handleGenerateAudio} disabled={isGeneratingAudio}>
