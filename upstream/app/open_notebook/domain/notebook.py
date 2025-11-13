@@ -150,6 +150,12 @@ class Source(ObjectModel):
     command: Optional[Union[str, RecordID]] = Field(
         default=None, description="Link to surreal-commands processing job"
     )
+    audio_file: Optional[str] = Field(
+        default=None, description="Path to generated TTS audio file"
+    )
+    audio_generation_command: Optional[Union[str, RecordID]] = Field(
+        default=None, description="Link to audio generation command"
+    )
 
     class Config:
         arbitrary_types_allowed = True
