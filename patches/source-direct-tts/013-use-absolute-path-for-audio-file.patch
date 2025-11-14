@@ -1,0 +1,22 @@
+diff --git a/upstream/app/commands/source_tts_commands.py b/upstream/app/commands/source_tts_commands.py
+index ad3a9ee..9d4500e 100644
+--- a/upstream/app/commands/source_tts_commands.py
++++ b/upstream/app/commands/source_tts_commands.py
+@@ -200,7 +200,7 @@ async def generate_source_audio_command(
+                     logger.debug(f"Deleted temporary chunk: {chunk_file}")
+ 
+         # 7. Update source record with audio file path
+-        source.audio_file = str(final_audio_path)
++        source.audio_file = str(final_audio_path.absolute())
+         source.audio_generation_command = (
+             ensure_record_id(input_data.execution_context.command_id)
+             if input_data.execution_context
+@@ -216,7 +216,7 @@ async def generate_source_audio_command(
+ 
+         return SourceTTSOutput(
+             success=True,
+-            audio_file_path=str(final_audio_path),
++            audio_file_path=str(final_audio_path.absolute()),
+             processing_time=processing_time,
+             chunks_processed=num_chunks,
+             total_characters=total_characters,

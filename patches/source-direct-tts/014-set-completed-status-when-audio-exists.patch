@@ -1,0 +1,15 @@
+diff --git a/upstream/app/api/routers/sources.py b/upstream/app/api/routers/sources.py
+index 1e76a8a..e79a331 100644
+--- a/upstream/app/api/routers/sources.py
++++ b/upstream/app/api/routers/sources.py
+@@ -1219,6 +1219,10 @@ async def get_audio_generation_status(source_id: str):
+         command_status = None
+         command_info = None
+ 
++        # If audio exists but no command is tracked, treat as completed
++        if has_audio and not source.audio_generation_command:
++            command_status = "completed"
++
+         if source.audio_generation_command:
+             try:
+                 from surreal_commands import get_command_status

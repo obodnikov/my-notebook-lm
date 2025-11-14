@@ -1,0 +1,5 @@
+
+-- Migration 10 down: Remove audio_file fields from source table
+
+REMOVE FIELD IF EXISTS audio_file ON TABLE source;
+REMOVE FIELD IF EXISTS audio_generation_command ON TABLE source;

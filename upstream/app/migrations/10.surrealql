@@ -1,0 +1,5 @@
+
+-- Migration 10: Add audio_file fields to source table for TTS support
+
+DEFINE FIELD IF NOT EXISTS audio_file ON TABLE source TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS audio_generation_command ON TABLE source TYPE option<record<command>>;

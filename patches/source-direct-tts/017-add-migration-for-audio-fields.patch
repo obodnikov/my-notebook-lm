@@ -1,0 +1,42 @@
+diff --git a/upstream/app/migrations/10.surrealql b/upstream/app/migrations/10.surrealql
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/upstream/app/migrations/10.surrealql
+@@ -0,0 +1,5 @@
++
++-- Migration 10: Add audio_file fields to source table for TTS support
++
++DEFINE FIELD IF NOT EXISTS audio_file ON TABLE source TYPE option<string>;
++DEFINE FIELD IF NOT EXISTS audio_generation_command ON TABLE source TYPE option<record<command>>;
+diff --git a/upstream/app/migrations/10_down.surrealql b/upstream/app/migrations/10_down.surrealql
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/upstream/app/migrations/10_down.surrealql
+@@ -0,0 +1,5 @@
++
++-- Migration 10 down: Remove audio_file fields from source table
++
++REMOVE FIELD IF EXISTS audio_file ON TABLE source;
++REMOVE FIELD IF EXISTS audio_generation_command ON TABLE source;
+diff --git a/upstream/app/open_notebook/database/async_migrate.py b/upstream/app/open_notebook/database/async_migrate.py
+index de24b07..bba94d6 100644
+--- a/upstream/app/open_notebook/database/async_migrate.py
++++ b/upstream/app/open_notebook/database/async_migrate.py
+@@ -105,6 +105,7 @@ class AsyncMigrationManager:
+             AsyncMigration.from_file("migrations/7.surrealql"),
+             AsyncMigration.from_file("migrations/8.surrealql"),
+             AsyncMigration.from_file("migrations/9.surrealql"),
++            AsyncMigration.from_file("migrations/10.surrealql"),
+         ]
+         self.down_migrations = [
+             AsyncMigration.from_file("migrations/1_down.surrealql"),
+@@ -116,6 +117,7 @@ class AsyncMigrationManager:
+             AsyncMigration.from_file("migrations/7_down.surrealql"),
+             AsyncMigration.from_file("migrations/8_down.surrealql"),
+             AsyncMigration.from_file("migrations/9_down.surrealql"),
++            AsyncMigration.from_file("migrations/10_down.surrealql"),
+         ]
+         self.runner = AsyncMigrationRunner(
+             up_migrations=self.up_migrations,

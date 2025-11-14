@@ -200,13 +200,31 @@ async def generate_source_audio_command(
                     logger.debug(f"Deleted temporary chunk: {chunk_file}")
 
         # 7. Update source record with audio file path
-        source.audio_file = str(final_audio_path)
-        source.audio_generation_command = (
-            ensure_record_id(input_data.execution_context.command_id)
+        audio_file_abs_path = str(final_audio_path.absolute())
+        command_id = (
+            str(ensure_record_id(input_data.execution_context.command_id))
             if input_data.execution_context
             else None
         )
-        await source.save()
+
+        # Use direct database UPDATE instead of save() due to ORM persistence issues
+        logger.info(f"Updating source with audio_file: {audio_file_abs_path}")
+        update_query = f"""
+        UPDATE {input_data.source_id} SET
+            audio_file = $audio_file,
+            audio_generation_command = {command_id if command_id else 'null'}
+        """
+        await repo_query(update_query, {
+            "audio_file": audio_file_abs_path,
+        })
+        logger.info(f"Database UPDATE executed. Verifying...")
+
+        # Verify the update worked
+        verification_source = await Source.get(input_data.source_id)
+        if verification_source and verification_source.audio_file:
+            logger.info(f"Verification successful: audio_file = {verification_source.audio_file}")
+        else:
+            logger.error(f"Verification failed: audio_file is {verification_source.audio_file if verification_source else 'source not found'}")
 
         processing_time = time.time() - start_time
         logger.info(
@@ -216,7 +234,7 @@ async def generate_source_audio_command(
 
         return SourceTTSOutput(
             success=True,
-            audio_file_path=str(final_audio_path),
+            audio_file_path=str(final_audio_path.absolute()),
             processing_time=processing_time,
             chunks_processed=num_chunks,
             total_characters=total_characters,

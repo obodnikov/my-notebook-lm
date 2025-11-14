@@ -1146,10 +1146,12 @@ async def get_source_audio(source_id: str):
                 detail="Audio file not found on server"
             )
 
+        # Use stat_result to enable range request support for audio streaming
         return FileResponse(
             path=str(audio_path),
             media_type="audio/mpeg",
             filename=f"source_{source_id}_audio.mp3",
+            stat_result=audio_path.stat(),
         )
 
     except HTTPException:
@@ -1218,6 +1220,10 @@ async def get_audio_generation_status(source_id: str):
         # Check generation command status if exists
         command_status = None
         command_info = None
+
+        # If audio exists but no command is tracked, treat as completed
+        if has_audio and not source.audio_generation_command:
+            command_status = "completed"
 
         if source.audio_generation_command:
             try:

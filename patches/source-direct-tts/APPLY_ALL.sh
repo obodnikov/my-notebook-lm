@@ -21,15 +21,16 @@ echo "==> Applying first round of fixes (006-007)..."
 git apply patches/source-direct-tts/006-fix-register-tts-command.patch
 git apply patches/source-direct-tts/007-fix-error-handling-ui.patch
 
-# Second round of bug fixes (8-11)
-echo "==> Applying second round of fixes (008-011)..."
+# Second round of bug fixes (8-11, 13)
+echo "==> Applying second round of fixes (008-011, 013)..."
 git apply patches/source-direct-tts/008-fix-audio-response-type.patch
 git apply patches/source-direct-tts/009-fix-failed-status-detection.patch
 git apply patches/source-direct-tts/010-fix-error-message-display.patch
 git apply patches/source-direct-tts/011-fix-typescript-audio-status-interface.patch
+git apply patches/source-direct-tts/013-use-absolute-path-for-audio-file.patch
 
 echo ""
-echo "✅ All 11 patches applied successfully!"
+echo "✅ All 12 patches applied successfully!"
 echo ""
 echo "Next steps:"
 echo "1. Restart backend (docker compose restart or similar)"
