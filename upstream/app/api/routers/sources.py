@@ -1147,10 +1147,10 @@ async def get_source_audio(source_id: str):
             )
 
         # Use stat_result to enable range request support for audio streaming
+        # Don't set filename to allow inline playback instead of download
         return FileResponse(
             path=str(audio_path),
             media_type="audio/mpeg",
-            filename=f"source_{source_id}_audio.mp3",
             stat_result=audio_path.stat(),
         )
 

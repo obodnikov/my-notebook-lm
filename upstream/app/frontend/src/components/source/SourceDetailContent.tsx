@@ -90,6 +90,7 @@ export function SourceDetailContent({
   } | null>(null)
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false)
   const [isDeletingAudio, setIsDeletingAudio] = useState(false)
+  const [audioBlobUrl, setAudioBlobUrl] = useState<string | null>(null)
 
   const fetchSource = useCallback(async () => {
     try {
@@ -391,6 +392,33 @@ export function SourceDetailContent({
     }
   }
 
+  // Fetch audio and create blob URL for authenticated playback
+  const fetchAudioBlob = useCallback(async () => {
+    if (!source?.id || !audioStatus?.has_audio) return
+
+    try {
+      const response = await sourcesApi.getAudio(source.id)
+      const blobUrl = window.URL.createObjectURL(response.data)
+      setAudioBlobUrl(blobUrl)
+    } catch (error) {
+      console.error('Failed to load audio for playback:', error)
+    }
+  }, [source?.id, audioStatus?.has_audio])
+
+  // Load audio blob when audio becomes available
+  useEffect(() => {
+    if (audioStatus?.has_audio && !audioBlobUrl) {
+      fetchAudioBlob()
+    }
+
+    // Cleanup blob URL on unmount
+    return () => {
+      if (audioBlobUrl) {
+        window.URL.revokeObjectURL(audioBlobUrl)
+      }
+    }
+  }, [audioStatus?.has_audio, audioBlobUrl, fetchAudioBlob])
+
   const handleDownloadAudio = async () => {
     if (!source) return
 
@@ -417,6 +445,13 @@ export function SourceDetailContent({
     if (confirm('Are you sure you want to delete the generated audio?')) {
       try {
         setIsDeletingAudio(true)
+
+        // Cleanup blob URL before deleting
+        if (audioBlobUrl) {
+          window.URL.revokeObjectURL(audioBlobUrl)
+          setAudioBlobUrl(null)
+        }
+
         await sourcesApi.deleteAudio(source.id)
         toast.success('Audio deleted successfully')
         await fetchAudioStatus()
@@ -733,7 +768,9 @@ export function SourceDetailContent({
                       <audio
                         controls
                         className="w-full mb-4"
-                        src={`/api/sources/${source.id}/audio`}
+                        src={audioBlobUrl || undefined}
+                        preload="metadata"
+                        key={audioBlobUrl}
                       >
                         Your browser does not support the audio element.
                       </audio>

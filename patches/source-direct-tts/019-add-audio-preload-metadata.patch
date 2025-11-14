@@ -1,0 +1,13 @@
+diff --git a/upstream/app/frontend/src/components/source/SourceDetailContent.tsx b/upstream/app/frontend/src/components/source/SourceDetailContent.tsx
+index f6e0615..5ebbb8d 100644
+--- a/upstream/app/frontend/src/components/source/SourceDetailContent.tsx
++++ b/upstream/app/frontend/src/components/source/SourceDetailContent.tsx
+@@ -734,6 +734,8 @@ export function SourceDetailContent({
+                         controls
+                         className="w-full mb-4"
+                         src={`/api/sources/${source.id}/audio`}
++                        preload="metadata"
++                        key={source.id}
+                       >
+                         Your browser does not support the audio element.
+                       </audio>
