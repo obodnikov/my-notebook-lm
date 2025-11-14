@@ -105,4 +105,45 @@ export const sourcesApi = {
       responseType: 'blob',
     })
   },
+
+  // Audio generation methods
+  generateAudio: async (id: string) => {
+    const response = await apiClient.post<{
+      message: string
+      command_id: string
+      source_id: string
+      status: string
+    }>(`/sources/${id}/generate-audio`)
+    return response.data
+  },
+
+  getAudio: async (id: string): Promise<AxiosResponse<Blob>> => {
+    return apiClient.get(`/sources/${id}/audio`, {
+      responseType: 'blob',
+    })
+  },
+
+  getAudioStatus: async (id: string) => {
+    const response = await apiClient.get<{
+      source_id: string
+      has_audio: boolean
+      audio_file: string | null
+      command_status: string | null
+      command_info: {
+        chunks_processed?: number
+        total_characters?: number
+        warning_message?: string
+        processing_time?: number
+        error_message?: string
+        success?: boolean
+      } | null
+      command_id: string | null
+    }>(`/sources/${id}/audio/status`)
+    return response.data
+  },
+
+  deleteAudio: async (id: string) => {
+    const response = await apiClient.delete<{ message: string }>(`/sources/${id}/audio`)
+    return response.data
+  },
 }

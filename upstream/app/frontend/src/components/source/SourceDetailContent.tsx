@@ -47,6 +47,9 @@ import {
   Database,
   AlertCircle,
   MessageSquare,
+  Volume2,
+  Play,
+  Pause,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from 'sonner'
@@ -79,6 +82,15 @@ export function SourceDetailContent({
   const [isDownloadingFile, setIsDownloadingFile] = useState(false)
   const [fileAvailable, setFileAvailable] = useState<boolean | null>(null)
   const [selectedInsight, setSelectedInsight] = useState<SourceInsightResponse | null>(null)
+  const [audioStatus, setAudioStatus] = useState<{
+    has_audio: boolean
+    command_status: string | null
+    warning_message?: string
+    error_message?: string
+  } | null>(null)
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false)
+  const [isDeletingAudio, setIsDeletingAudio] = useState(false)
+  const [audioBlobUrl, setAudioBlobUrl] = useState<string | null>(null)
 
   const fetchSource = useCallback(async () => {
     try {
@@ -121,13 +133,28 @@ export function SourceDetailContent({
     }
   }, [])
 
+  const fetchAudioStatus = useCallback(async () => {
+    try {
+      const data = await sourcesApi.getAudioStatus(sourceId)
+      setAudioStatus({
+        has_audio: data.has_audio,
+        command_status: data.command_status,
+        warning_message: data.command_info?.warning_message,
+        error_message: data.command_info?.error_message
+      })
+    } catch (err) {
+      console.error('Failed to fetch audio status:', err)
+    }
+  }, [sourceId])
+
   useEffect(() => {
     if (sourceId) {
       void fetchSource()
       void fetchInsights()
       void fetchTransformations()
+      void fetchAudioStatus()
     }
-  }, [fetchInsights, fetchSource, fetchTransformations, sourceId])
+  }, [fetchInsights, fetchSource, fetchTransformations, fetchAudioStatus, sourceId])
 
   const createInsight = async () => {
     if (!selectedTransformation) {
@@ -308,6 +335,135 @@ export function SourceDetailContent({
     }
   }
 
+  const handleGenerateAudio = async () => {
+    if (!source) return
+
+    try {
+      setIsGeneratingAudio(true)
+      const response = await sourcesApi.generateAudio(source.id)
+      toast.success(response.message)
+      await fetchAudioStatus()
+
+      // Poll for completion with timeout
+      let pollCount = 0
+      const maxPolls = 150 // 5 minutes max (150 * 2s)
+
+      const pollInterval = setInterval(async () => {
+        try {
+          pollCount++
+
+          // Timeout after max polls
+          if (pollCount >= maxPolls) {
+            clearInterval(pollInterval)
+            setIsGeneratingAudio(false)
+            toast.error('Audio generation timeout. Please check status manually.')
+            return
+          }
+
+          const status = await sourcesApi.getAudioStatus(source.id)
+          setAudioStatus({
+            has_audio: status.has_audio,
+            command_status: status.command_status,
+            warning_message: status.command_info?.warning_message,
+            error_message: status.command_info?.error_message
+          })
+
+          if (status.command_status === 'completed') {
+            clearInterval(pollInterval)
+            setIsGeneratingAudio(false)
+            toast.success('Audio generation completed!')
+          } else if (status.command_status === 'failed') {
+            clearInterval(pollInterval)
+            setIsGeneratingAudio(false)
+            toast.error('Audio generation failed. Please check logs or try again.')
+          }
+        } catch (pollError) {
+          // Error during polling
+          console.error('Error polling audio status:', pollError)
+          clearInterval(pollInterval)
+          setIsGeneratingAudio(false)
+          toast.error('Error checking generation status')
+        }
+      }, 2000)
+    } catch (error) {
+      console.error('Failed to generate audio:', error)
+      toast.error('Failed to start audio generation')
+      setIsGeneratingAudio(false)
+    }
+  }
+
+  // Fetch audio and create blob URL for authenticated playback
+  const fetchAudioBlob = useCallback(async () => {
+    if (!source?.id || !audioStatus?.has_audio) return
+
+    try {
+      const response = await sourcesApi.getAudio(source.id)
+      const blobUrl = window.URL.createObjectURL(response.data)
+      setAudioBlobUrl(blobUrl)
+    } catch (error) {
+      console.error('Failed to load audio for playback:', error)
+    }
+  }, [source?.id, audioStatus?.has_audio])
+
+  // Load audio blob when audio becomes available
+  useEffect(() => {
+    if (audioStatus?.has_audio && !audioBlobUrl) {
+      fetchAudioBlob()
+    }
+
+    // Cleanup blob URL on unmount
+    return () => {
+      if (audioBlobUrl) {
+        window.URL.revokeObjectURL(audioBlobUrl)
+      }
+    }
+  }, [audioStatus?.has_audio, audioBlobUrl, fetchAudioBlob])
+
+  const handleDownloadAudio = async () => {
+    if (!source) return
+
+    try {
+      const response = await sourcesApi.getAudio(source.id)
+      const blobUrl = window.URL.createObjectURL(response.data)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = `${source.title || 'source'}_audio.mp3`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(blobUrl)
+      toast.success('Audio download started')
+    } catch (error) {
+      console.error('Failed to download audio:', error)
+      toast.error('Failed to download audio')
+    }
+  }
+
+  const handleDeleteAudio = async () => {
+    if (!source) return
+
+    if (confirm('Are you sure you want to delete the generated audio?')) {
+      try {
+        setIsDeletingAudio(true)
+
+        // Cleanup blob URL before deleting
+        if (audioBlobUrl) {
+          window.URL.revokeObjectURL(audioBlobUrl)
+          setAudioBlobUrl(null)
+        }
+
+        await sourcesApi.deleteAudio(source.id)
+        toast.success('Audio deleted successfully')
+        await fetchAudioStatus()
+      } catch (error) {
+        console.error('Failed to delete audio:', error)
+        toast.error('Failed to delete audio')
+      } finally {
+        setIsDeletingAudio(false)
+      }
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center p-8">
@@ -388,6 +544,18 @@ export function SourceDetailContent({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
+                  onClick={handleGenerateAudio}
+                  disabled={isGeneratingAudio || audioStatus?.command_status === 'running' || audioStatus?.command_status === 'queued'}
+                >
+                  <Volume2 className="mr-2 h-4 w-4" />
+                  {isGeneratingAudio || audioStatus?.command_status === 'running' || audioStatus?.command_status === 'queued'
+                    ? 'Generating Audio...'
+                    : audioStatus?.has_audio
+                      ? 'Regenerate Audio Reading'
+                      : 'Generate Audio Reading'}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
                   className="text-destructive"
                   onClick={handleDelete}
                 >
@@ -403,10 +571,13 @@ export function SourceDetailContent({
       {/* Tabs Content */}
       <div className="flex-1 overflow-y-auto px-2">
         <Tabs defaultValue="content" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 sticky top-0 z-10">
+          <TabsList className="grid w-full grid-cols-4 sticky top-0 z-10">
             <TabsTrigger value="content">Content</TabsTrigger>
             <TabsTrigger value="insights">
               Insights {insights.length > 0 && `(${insights.length})`}
+            </TabsTrigger>
+            <TabsTrigger value="audio">
+              Audio {audioStatus?.has_audio && <CheckCircle className="ml-1 h-3 w-3" />}
             </TabsTrigger>
             <TabsTrigger value="details">Details</TabsTrigger>
           </TabsList>
@@ -568,6 +739,129 @@ export function SourceDetailContent({
                         </div>
                       </div>
                     ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="audio" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Volume2 className="h-5 w-5" />
+                  Audio Reading
+                </CardTitle>
+                <CardDescription>
+                  Direct text-to-speech audio of the source content
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {audioStatus?.has_audio ? (
+                  <>
+                    {/* Audio Player */}
+                    <div className="rounded-lg border bg-muted/30 p-6">
+                      <h3 className="mb-4 text-sm font-semibold flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        Audio Ready
+                      </h3>
+                      <audio
+                        controls
+                        className="w-full mb-4"
+                        src={audioBlobUrl || undefined}
+                        preload="metadata"
+                        key={audioBlobUrl}
+                      >
+                        Your browser does not support the audio element.
+                      </audio>
+                      {audioStatus.warning_message && (
+                        <Alert className="mb-4">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertTitle>Note</AlertTitle>
+                          <AlertDescription>{audioStatus.warning_message}</AlertDescription>
+                        </Alert>
+                      )}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDownloadAudio}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Download Audio
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleGenerateAudio}
+                          disabled={isGeneratingAudio}
+                        >
+                          <Volume2 className="mr-2 h-4 w-4" />
+                          Regenerate
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleDeleteAudio}
+                          disabled={isDeletingAudio}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Audio
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                ) : audioStatus?.command_status === 'running' || audioStatus?.command_status === 'queued' ? (
+                  <div className="text-center py-8">
+                    <LoadingSpinner className="mx-auto mb-4" />
+                    <p className="text-sm font-medium">Generating audio...</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This may take a few moments
+                    </p>
+                  </div>
+                ) : audioStatus?.command_status === 'failed' ? (
+                  <div className="text-center py-8">
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Generation Failed</AlertTitle>
+                      <AlertDescription>
+                        {audioStatus.error_message || 'Audio generation failed. This could be due to a missing TTS model, invalid text, or a server error. Please check the application logs for details.'}
+                      </AlertDescription>
+                    </Alert>
+                    <Button onClick={handleGenerateAudio} disabled={isGeneratingAudio}>
+                      {isGeneratingAudio ? (
+                        <>
+                          <LoadingSpinner className="mr-2 h-4 w-4" />
+                          Retrying...
+                        </>
+                      ) : (
+                        <>
+                          <Volume2 className="mr-2 h-4 w-4" />
+                          Retry Generation
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Volume2 className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm mb-4">No audio generated yet</p>
+                    <Button onClick={handleGenerateAudio} disabled={isGeneratingAudio}>
+                      {isGeneratingAudio ? (
+                        <>
+                          <LoadingSpinner className="mr-2 h-4 w-4" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Volume2 className="mr-2 h-4 w-4" />
+                          Generate Audio Reading
+                        </>
+                      )}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-4">
+                      Creates a direct audio reading of the source text using text-to-speech
+                    </p>
                   </div>
                 )}
               </CardContent>

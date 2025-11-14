@@ -1,0 +1,18 @@
+diff --git a/upstream/app/api/routers/sources.py b/upstream/app/api/routers/sources.py
+index 1e76a8a..2f8c441 100644
+--- a/upstream/app/api/routers/sources.py
++++ b/upstream/app/api/routers/sources.py
+@@ -1146,11 +1146,11 @@ async def get_source_audio(source_id: str):
+                 detail="Audio file not found on server"
+             )
+
++        # Use stat_result to enable range request support for audio streaming
++        # Don't set filename to allow inline playback instead of download
+         return FileResponse(
+             path=str(audio_path),
+             media_type="audio/mpeg",
+-            filename=f"source_{source_id}_audio.mp3",
++            stat_result=audio_path.stat(),
+         )
+
+     except HTTPException:

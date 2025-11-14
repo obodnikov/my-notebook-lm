@@ -1038,3 +1038,235 @@ async def create_source_insight(source_id: str, request: CreateSourceInsightRequ
     except Exception as e:
         logger.error(f"Error creating insight for source {source_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error creating insight: {str(e)}")
+
+
+@router.post("/sources/{source_id}/generate-audio")
+async def generate_source_audio(source_id: str):
+    """
+    Generate direct text-to-speech audio from source content.
+
+    This endpoint creates a simple audio reading of the source text without
+    podcast-style transformation. The text is read as-is in the original language.
+
+    For long texts, the content is automatically split into chunks and concatenated.
+    """
+    try:
+        # Verify source exists
+        source = await Source.get(source_id)
+        if not source:
+            raise HTTPException(status_code=404, detail="Source not found")
+
+        if not source.full_text:
+            raise HTTPException(
+                status_code=400,
+                detail="Source has no text content to convert to audio"
+            )
+
+        # Check if audio generation is already in progress
+        if source.audio_generation_command:
+            try:
+                from surreal_commands import get_command_status
+                status = await get_command_status(str(source.audio_generation_command))
+                if status and status.status in ["running", "queued"]:
+                    return {
+                        "message": "Audio generation already in progress",
+                        "command_id": str(source.audio_generation_command),
+                        "status": status.status,
+                    }
+            except Exception as e:
+                logger.warning(f"Failed to check audio generation status: {e}")
+
+        try:
+            # Import command module
+            import commands.source_tts_commands  # noqa: F401
+
+            # Submit audio generation command
+            from commands.source_tts_commands import SourceTTSInput
+
+            command_input = SourceTTSInput(
+                source_id=str(source.id),
+                chunk_size=4000,  # Safe default for most TTS providers
+            )
+
+            command_id = await CommandService.submit_command_job(
+                "open_notebook",
+                "generate_source_audio",
+                command_input.model_dump(),
+            )
+
+            logger.info(f"Submitted audio generation command: {command_id} for source {source_id}")
+
+            return {
+                "message": "Audio generation started",
+                "command_id": command_id,
+                "source_id": source_id,
+                "status": "queued",
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to submit audio generation command: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to start audio generation: {str(e)}"
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating audio for source {source_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generating audio: {str(e)}"
+        )
+
+
+@router.get("/sources/{source_id}/audio")
+async def get_source_audio(source_id: str):
+    """
+    Stream or download the generated audio file for a source.
+
+    Returns the audio file if it exists, or 404 if no audio has been generated.
+    """
+    try:
+        source = await Source.get(source_id)
+        if not source:
+            raise HTTPException(status_code=404, detail="Source not found")
+
+        if not source.audio_file:
+            raise HTTPException(
+                status_code=404,
+                detail="No audio file available for this source. Generate audio first."
+            )
+
+        audio_path = Path(source.audio_file)
+        if not audio_path.exists():
+            logger.warning(f"Audio file not found for source {source_id}: {source.audio_file}")
+            raise HTTPException(
+                status_code=404,
+                detail="Audio file not found on server"
+            )
+
+        # Use stat_result to enable range request support for audio streaming
+        # Don't set filename to allow inline playback instead of download
+        return FileResponse(
+            path=str(audio_path),
+            media_type="audio/mpeg",
+            stat_result=audio_path.stat(),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error streaming audio for source {source_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving audio: {str(e)}"
+        )
+
+
+@router.delete("/sources/{source_id}/audio")
+async def delete_source_audio(source_id: str):
+    """
+    Delete the generated audio file for a source.
+
+    Removes the audio file from disk and clears the audio_file field.
+    """
+    try:
+        source = await Source.get(source_id)
+        if not source:
+            raise HTTPException(status_code=404, detail="Source not found")
+
+        if not source.audio_file:
+            return {"message": "No audio file to delete"}
+
+        # Delete the audio file
+        audio_path = Path(source.audio_file)
+        if audio_path.exists():
+            audio_path.unlink()
+            logger.info(f"Deleted audio file: {audio_path}")
+
+        # Clear audio fields
+        source.audio_file = None
+        source.audio_generation_command = None
+        await source.save()
+
+        return {"message": "Audio file deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting audio for source {source_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error deleting audio: {str(e)}"
+        )
+
+
+@router.get("/sources/{source_id}/audio/status")
+async def get_audio_generation_status(source_id: str):
+    """
+    Get the status of audio generation for a source.
+
+    Returns information about the audio generation progress or completion.
+    """
+    try:
+        source = await Source.get(source_id)
+        if not source:
+            raise HTTPException(status_code=404, detail="Source not found")
+
+        # Check if audio file exists
+        has_audio = bool(source.audio_file and Path(source.audio_file).exists())
+
+        # Check generation command status if exists
+        command_status = None
+        command_info = None
+
+        # If audio exists but no command is tracked, treat as completed
+        if has_audio and not source.audio_generation_command:
+            command_status = "completed"
+
+        if source.audio_generation_command:
+            try:
+                from surreal_commands import get_command_status
+                status_result = await get_command_status(str(source.audio_generation_command))
+
+                if status_result:
+                    command_status = status_result.status
+                    result = getattr(status_result, "result", None)
+
+                    # Check if command completed but failed (success=False)
+                    if isinstance(result, dict):
+                        success = result.get("success", True)
+                        if command_status == "completed" and not success:
+                            # Override status to 'failed' for failed commands
+                            command_status = "failed"
+
+                        command_info = {
+                            "chunks_processed": result.get("chunks_processed", 0),
+                            "total_characters": result.get("total_characters", 0),
+                            "warning_message": result.get("warning_message"),
+                            "processing_time": result.get("processing_time"),
+                            "error_message": result.get("error_message"),
+                            "success": success,
+                        }
+
+            except Exception as e:
+                logger.warning(f"Failed to get audio generation status: {e}")
+
+        return {
+            "source_id": source_id,
+            "has_audio": has_audio,
+            "audio_file": source.audio_file if has_audio else None,
+            "command_status": command_status,
+            "command_info": command_info,
+            "command_id": str(source.audio_generation_command) if source.audio_generation_command else None,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting audio status for source {source_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error getting audio status: {str(e)}"
+        )

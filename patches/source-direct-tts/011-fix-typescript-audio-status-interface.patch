@@ -1,0 +1,13 @@
+diff --git a/upstream/app/frontend/src/lib/api/sources.ts b/upstream/app/frontend/src/lib/api/sources.ts
+index aab5a7f..378f678 100644
+--- a/upstream/app/frontend/src/lib/api/sources.ts
++++ b/upstream/app/frontend/src/lib/api/sources.ts
+@@ -134,6 +134,8 @@ export const sourcesApi = {
+         total_characters?: number
+         warning_message?: string
+         processing_time?: number
++        error_message?: string
++        success?: boolean
+       } | null
+       command_id: string | null
+     }>(`/sources/${id}/audio/status`)
